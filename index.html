@@ -7,20 +7,22 @@
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
     // 🔑 Replace with your Supabase details
-    const SUPABASE_URL = "https://yktmezthrgowzjpqaosn.supabase.co  "
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrdG1lenRocmdvd3pqcHFhb3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNDI0MDEsImV4cCI6MjA3NDYxODQwMX0.o7KpW0oTVKlMQw56lmVE7ZGIvDByswIJ4S9HfrNkea8"
+    const SUPABASE_URL = "https://yktmezthrgowzjpqaosn.supabase.co"
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY"
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-    async function shortenUrl() {
+    // Detect repo name automatically
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const repoName = parts.length > 0 ? parts[0] : null;
+
+    async function shortenUrl(){
       const longUrl = document.getElementById("longUrl").value
       if (!longUrl) {
         alert("Please enter a URL")
         return
       }
 
-      // generate shortcode (random 5 chars)
       const shortcode = Math.random().toString(36).substring(2, 7)
-
       const { error } = await supabase
         .from("links")
         .insert([{ shortcode: shortcode, url: longUrl }])
@@ -31,19 +33,22 @@
         return
       }
 
-      const shortUrl = `${window.location.origin}/shrinklink/${shortcode}`
+      const shortUrl = repoName
+        ? `${window.location.origin}/${repoName}/${shortcode}`
+        : `${window.location.origin}/${shortcode}`
+
       document.getElementById("result").innerHTML =
         `<p>✅ Short URL: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>`
     }
 
-    async function redirect() {
-      // Get everything after /shrinklink/
-      let path = window.location.pathname.replace("/shrinklink/", "").trim();
+    async function redirect(){
+      // Remove repo name if it exists
+      let path = repoName
+        ? window.location.pathname.replace(`/${repoName}/`, "").trim()
+        : window.location.pathname.replace("/", "").trim()
 
-      // If there's nothing after /shrinklink/, stay on homepage
       if (!path) return;
 
-      // Lookup in Supabase
       const { data, error } = await supabase
         .from("links")
         .select("url")
@@ -57,7 +62,6 @@
       }
     }
 
-    // Run redirect on page load
     window.onload = redirect
     window.shortenUrl = shortenUrl
   </script>
